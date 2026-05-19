@@ -15,7 +15,6 @@ face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fro
 
 run = st.checkbox('Start Camera')
 FRAME_WINDOW = st.image([])
-
 cap = None
 if run:
     cap = cv2.VideoCapture(0)
