@@ -7,17 +7,14 @@ from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 st.set_page_config(page_title="Real-Time Emotion Detector", layout="centered")
 st.title("😊 Real-Time Emotion Detector")
 
-# Load the pre-trained model once when the app starts
+# Load the pre-trained model safely
 model = load_model("_mini_XCEPTION.102-0.66.hdf5", compile=False)
 emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# This class securely processes frames coming from the user's web browser
 class EmotionTransformer(VideoTransformerBase):
     def transform(self, frame):
-        # Convert web frame into a standard OpenCV BGR array
         img = frame.to_ndarray(format="bgr24")
-        
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = face_classifier.detectMultiScale(gray, 1.3, 5)
 
@@ -37,5 +34,11 @@ class EmotionTransformer(VideoTransformerBase):
 
         return img
 
-# Mount the WebRTC webcam interface components directly on the webpage
-webrtc_streamer(key="emotion-detector", video_transformer_factory=EmotionTransformer)
+# Google Public WebRTC Routing Configuration
+webrtc_streamer(
+    key="emotion-detector", 
+    video_transformer_factory=EmotionTransformer,
+    rtc_configuration={
+        "iceServers": [{"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]}]
+    }
+)
