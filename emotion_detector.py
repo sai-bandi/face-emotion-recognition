@@ -17,7 +17,8 @@ while True:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = face_classifier.detectMultiScale(gray, 1.3, 5)
 
-    canvas = np.zeros((250, 300, 3), dtype="uint8")  # for percentage bar UI
+    # Blank black sidebar canvas (clears every frame)
+    canvas = np.zeros((250, 300, 3), dtype="uint8")  
 
     for (x, y, w, h) in faces:
         roi_gray = gray[y:y+h, x:x+w]
@@ -28,7 +29,8 @@ while True:
             roi = np.expand_dims(roi, axis=0)
             roi = np.expand_dims(roi, axis=-1)
 
-            prediction = model.predict(roi)[0]
+            # Added verbose=0 here to silence the console logs!
+            prediction = model.predict(roi, verbose=0)[0]
             emotion_idx = np.argmax(prediction)
             label = emotion_labels[emotion_idx]
 
