@@ -2,26 +2,23 @@ import streamlit as st
 import cv2
 import numpy as np
 from keras.models import load_model
-from PIL import Image
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
 st.set_page_config(page_title="Real-Time Emotion Detector", layout="centered")
-
 st.title("😊 Real-Time Emotion Detector")
 
-# Load the pre-trained model
+# Load the pre-trained model once when the app starts
 model = load_model("_mini_XCEPTION.102-0.66.hdf5", compile=False)
 emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-run = st.checkbox('Start Camera')
-FRAME_WINDOW = st.image([])
-cap = None
-if run:
-    cap = cv2.VideoCapture(0)
-
-    while run:
-        ret, frame = cap.read()
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+# This class securely processes frames coming from the user's web browser
+class EmotionTransformer(VideoTransformerBase):
+    def transform(self, frame):
+        # Convert web frame into a standard OpenCV BGR array
+        img = frame.to_ndarray(format="bgr24")
+        
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = face_classifier.detectMultiScale(gray, 1.3, 5)
 
         for (x, y, w, h) in faces:
@@ -31,13 +28,14 @@ if run:
             roi = np.expand_dims(roi, axis=0)
             roi = np.expand_dims(roi, axis=-1)
 
-            prediction = model.predict(roi)[0]
+            prediction = model.predict(roi, verbose=0)[0]
             label = emotion_labels[prediction.argmax()]
             label_position = (x, y - 10)
 
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            cv2.putText(frame, label, label_position, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(img, label, label_position, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
-        FRAME_WINDOW.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        return img
 
-    cap.release()
+# Mount the WebRTC webcam interface components directly on the webpage
+webrtc_streamer(key="emotion-detector", video_transformer_factory=EmotionTransformer)
